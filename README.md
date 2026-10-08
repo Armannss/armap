@@ -1,5 +1,7 @@
 # armap
 
+![armap: give your AI agent a map of your codebase](media/armap.png)
+
 A Claude Code plugin that gives Claude a compact, ranked map of your codebase at the start of every session, so it opens the right files first instead of exploring blind.
 
 - **Any language.** Definitions and references are found by pattern matching, with no compiler or language server. Around 50 file types are recognized, and imports are resolved to real files for 15 languages.
