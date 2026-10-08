@@ -1,0 +1,12 @@
+{
+  "name": "armap",
+  "description": "armap: a ranked, token-budgeted codebase map for Claude Code.",
+  "owner": { "name": "Arman Naseri Far" },
+  "plugins": [
+    {
+      "name": "armap",
+      "source": "./",
+      "description": "Gives Claude a compact, ranked map of any codebase so it reads fewer files and spends fewer tokens."
+    }
+  ]
+}

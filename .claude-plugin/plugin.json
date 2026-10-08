@@ -1,0 +1,8 @@
+{
+  "name": "armap",
+  "version": "0.1.0",
+  "description": "Gives Claude a compact, ranked map of any codebase so it reads fewer files and spends fewer tokens.",
+  "author": { "name": "Arman Naseri Far" },
+  "license": "MIT",
+  "keywords": ["repo-map", "tokens", "context", "dependencies"]
+}

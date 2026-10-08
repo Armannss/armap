@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/armap.mjs\" map --budget 700 --hook",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

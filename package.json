@@ -1,0 +1,10 @@
+{
+  "name": "armap",
+  "version": "0.1.0",
+  "description": "A compact, ranked map of any codebase for Claude Code.",
+  "type": "module",
+  "bin": { "armap": "bin/armap.mjs" },
+  "scripts": { "test": "node --test" },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}
