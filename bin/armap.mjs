@@ -33,6 +33,9 @@ function main() {
   const [command, arg] = opts.positional;
   if (opts.help || !command) { console.log(USAGE); return; }
   if (!Number.isFinite(opts.budget) || opts.budget <= 0) throw new Error('--budget must be a positive number');
+  if (!['map', 'deps', 'refs'].includes(command)) throw new Error(`Unknown command "${command}"\n\n${USAGE}`);
+  if (command === 'deps' && !arg) throw new Error('deps needs a file path');
+  if (command === 'refs' && !arg) throw new Error('refs needs a symbol name');
 
   const root = resolve(opts.root);
   const { files, truncated, graph } = analyze(root);
@@ -45,7 +48,6 @@ function main() {
     const queryCommand = `node "${fileURLToPath(import.meta.url)}"`;
     console.log(renderMap({ files, graph, budget: opts.budget, truncated, queryCommand }));
   } else if (command === 'deps') {
-    if (!arg) throw new Error('deps needs a file path');
     const rel = relative(root, resolve(root, arg)).split('\\').join('/');
     let index = files.findIndex((f) => f.path === rel);
     if (index === -1) {
@@ -55,10 +57,7 @@ function main() {
     }
     console.log(renderDeps({ files, graph, index }));
   } else if (command === 'refs') {
-    if (!arg) throw new Error('refs needs a symbol name');
     console.log(renderRefs({ files, graph, name: arg }));
-  } else {
-    throw new Error(`Unknown command "${command}"\n\n${USAGE}`);
   }
 }
 
