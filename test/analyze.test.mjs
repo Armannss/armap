@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { analyze } from '../src/analyze.mjs';
-import { renderMap } from '../src/render.mjs';
+import { renderDeps, renderMap } from '../src/render.mjs';
 
 function repo(tree) {
   const root = mkdtempSync(join(tmpdir(), 'armap-'));
@@ -109,4 +109,28 @@ test('map ranks the most depended-on file first and stays within budget', () => 
   const listed = map.split('\n').filter((l) => /^\S+\.ts/.test(l));
   assert.match(listed[0], /^core\.ts \(used by 2\)/);
   assert.ok(map.length / 3.5 <= 200);
+});
+
+test('files over 256 KB are mapped from their first 256 KB and marked partial', () => {
+  const filler = '// padding\n'.repeat(Math.ceil((300 * 1024) / 11));
+  const root = repo({
+    'big.ts': `export function early() {}\n${filler}export function late() {}\n`,
+    'app.ts': 'import { early } from "./big";\nearly();\n',
+  });
+  const { files, graph, truncated } = analyze(root);
+  const big = files.findIndex((f) => f.path === 'big.ts');
+  assert.deepEqual(files[big].defs.map((d) => d.name), ['early']);
+  const map = renderMap({ files, graph, truncated, budget: 300, queryCommand: 'armap' });
+  assert.match(map, /^Partial \(over 256 KB, only the first 256 KB read\): big\.ts$/m);
+  assert.match(map, /^big\.ts \(used by 1; partial, 300 KB\)$/m);
+  assert.match(map, /L1 export function early\(\)/);
+  assert.match(renderDeps({ files, graph, index: big }), /^big\.ts \(partial: only the first 256 KB of 300 KB read\)/);
+});
+
+test('the partial-files note names at most three files', () => {
+  const filler = 'x\n'.repeat(140 * 1024);
+  const root = repo(Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map((n) => [`${n}.js`, filler])));
+  const { files, graph, truncated } = analyze(root);
+  const map = renderMap({ files, graph, truncated, budget: 300, queryCommand: 'armap' });
+  assert.match(map, /^Partial \(over 256 KB, only the first 256 KB read\): a\.js, b\.js, c\.js \(\+2 more\)$/m);
 });

@@ -27,7 +27,8 @@ const SKIP_DIRS = new Set([
 ]);
 
 export const MAX_FILES = 5000;
-const MAX_BYTES = 256 * 1024;
+// Larger files are still mapped, but only their first MAX_BYTES are read.
+export const MAX_BYTES = 256 * 1024;
 
 function wanted(rel) {
   if (!(extname(rel) in LANGS)) return false;
@@ -60,12 +61,18 @@ function walk(root) {
 }
 
 // Source files under root, as posix-style relative paths. Honors .gitignore when root is in a git repo.
+// `large` maps each file over MAX_BYTES to its size in bytes.
 export function listFiles(root) {
   let rels;
   try { rels = gitFiles(root).filter(wanted); } catch { rels = walk(root); }
+  const large = new Map();
   rels = rels.filter((rel) => {
-    try { const s = statSync(join(root, rel)); return s.isFile() && s.size <= MAX_BYTES; } catch { return false; }
+    let s;
+    try { s = statSync(join(root, rel)); } catch { return false; }
+    if (!s.isFile()) return false;
+    if (s.size > MAX_BYTES) large.set(rel, s.size);
+    return true;
   }).sort();
   const truncated = rels.length > MAX_FILES;
-  return { files: truncated ? rels.slice(0, MAX_FILES) : rels, truncated };
+  return { files: truncated ? rels.slice(0, MAX_FILES) : rels, truncated, large };
 }
