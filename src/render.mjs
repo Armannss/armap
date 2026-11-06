@@ -33,7 +33,12 @@ export function renderMap({ files, graph, budget, truncated, queryCommand }) {
     head.push(`Partial (over ${size(MAX_BYTES)}, only the first ${size(MAX_BYTES)} read): ${partial.slice(0, PARTIAL_NAMES).join(', ')}${more}`);
   }
   head.push('');
-  const tail = ['', `Query before reading files: ${queryCommand} deps <file> | refs <symbol> | map --budget <tokens>`];
+  // The hook builds the map once per session, so say it can go stale and which queries cannot.
+  const tail = [
+    '',
+    'This map is a snapshot from when it was built, so line numbers can be out of date after edits. `deps` and `refs` rescan the code on every call.',
+    `Query before reading files: ${queryCommand} deps <file> | refs <symbol> | map --budget <tokens>`,
+  ];
 
   const order = files.map((_, i) => i).sort((a, b) => graph.rank[b] - graph.rank[a]);
   const body = [];

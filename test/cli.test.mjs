@@ -35,3 +35,14 @@ for (const populated of [false, true]) {
     assert.equal(run('--help').status, 0);
   });
 }
+
+test('map ends by saying it is a snapshot and that deps and refs rescan', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'armap-cli-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, 'sample.js'), 'export const example = 1;\n');
+  const { status, stdout } = spawnSync(process.execPath, [cli, 'map', '--hook', '--root', root], { encoding: 'utf8' });
+  assert.equal(status, 0);
+  const [note, query] = stdout.trimEnd().split('\n').slice(-2);
+  assert.match(note, /^This map is a snapshot .*`deps` and `refs` rescan the code on every call\.$/);
+  assert.match(query, /^Query before reading files: /);
+});
