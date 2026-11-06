@@ -1,0 +1,5 @@
+{
+  "name": "armap-tree-baseline",
+  "version": "0.1.0",
+  "description": "Benchmark control: injects a plain, unranked file tree at session start, capped at the same budget as the armap map."
+}
