@@ -57,6 +57,7 @@ node bin/armap.mjs map --root /path/to/repo --budget 2000
 - Imports are resolved for JavaScript, TypeScript, Python, Go, Rust, Java, Kotlin, Scala, C, C++, C#, Ruby, PHP, Dart and Elixir. Other languages fall back to matching names, which can produce false links for common words.
 - Parsing is by pattern, not by compiler. Imports built from variables, reflection and dependency injection are not seen.
 - Class methods are not listed for every language.
+- Only the first 256 KB of a file is read. Larger files are still mapped, but they are marked as partial, and definitions after that point are not listed.
 
 ## Benchmarks
 
