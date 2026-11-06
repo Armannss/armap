@@ -38,6 +38,8 @@ armap deps lib/auth.ts      # what this file uses, and what uses it
 armap refs hashPassword     # where it is defined, and every file that references it
 ```
 
+The map is a snapshot from session start, so it goes stale as the code changes, and it says so in its last lines. `deps` and `refs` scan the repository again on every call, so their answers stay current.
+
 ## Use it without Claude Code
 
 ```

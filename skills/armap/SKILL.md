@@ -14,5 +14,6 @@ Work from the map instead of exploring blind:
 3. To find a symbol, run the query command with `refs <symbol>`. It gives the defining file and line, and every file that references it.
 4. When you open a file, read only the region around the `L<n>` line you need rather than the whole file.
 5. If the map does not cover the area you need, rerun it with `map --budget 4000` for a longer listing.
+6. The map is a snapshot from session start. After files have been edited or moved, its line numbers and rankings can be out of date: rely on `deps` and `refs`, which rescan the code on every call, or rerun `map`.
 
 Links come from resolved import statements in JavaScript, TypeScript, Python, Go, Rust, Java, Kotlin, C, C++, C#, Ruby, PHP, Dart and Elixir, so a `deps` or `refs` answer for those can be used as is: do not repeat it with a search. In other languages links are inferred from shared names and are a hint to confirm with one targeted read. Dynamic imports built from variables, and symbols reached only through reflection or dependency injection, are not seen.
