@@ -1,8 +1,13 @@
+import { MAX_BYTES } from './scan.mjs';
+
 // Rough estimate; paths and code run denser than prose, so this errs on the high side.
 export const estimateTokens = (text) => Math.ceil(text.length / 3.5);
 
 const SYMBOLS_PER_FILE = 6;
 const LIST_LIMIT = 25;
+const PARTIAL_NAMES = 3;
+
+const size = (bytes) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`);
 
 function counts(items) {
   const m = new Map();
@@ -19,8 +24,15 @@ export function renderMap({ files, graph, budget, truncated, queryCommand }) {
     `# Repo map: ${files.length}${truncated ? '+' : ''} source files (${langs})`,
     `Top-level: ${dirs}`,
     'Files below are ranked by how much other code depends on them. `L<n>` is the line of each definition.',
-    '',
   ];
+  // Files over the size limit are mapped from their first MAX_BYTES only; say which, so a missing
+  // definition in one of them is not mistaken for an absent one.
+  const partial = files.filter((f) => f.partialOf).map((f) => f.path);
+  if (partial.length) {
+    const more = partial.length > PARTIAL_NAMES ? ` (+${partial.length - PARTIAL_NAMES} more)` : '';
+    head.push(`Partial (over ${size(MAX_BYTES)}, only the first ${size(MAX_BYTES)} read): ${partial.slice(0, PARTIAL_NAMES).join(', ')}${more}`);
+  }
+  head.push('');
   // The hook builds the map once per session, so say it can go stale and which queries cannot.
   const tail = [
     '',
@@ -40,7 +52,8 @@ export function renderMap({ files, graph, budget, truncated, queryCommand }) {
       .slice(0, SYMBOLS_PER_FILE)
       .sort((a, b) => a.line - b.line);
     const usedBy = graph.inc[i].size;
-    const entry = [`${f.path}${usedBy ? ` (used by ${usedBy})` : ''}`, ...symbols.map((s) => `  L${s.line} ${s.sig}`)];
+    const note = [usedBy && `used by ${usedBy}`, f.partialOf && `partial, ${size(f.partialOf)}`].filter(Boolean).join('; ');
+    const entry = [`${f.path}${note ? ` (${note})` : ''}`, ...symbols.map((s) => `  L${s.line} ${s.sig}`)];
     const cost = estimateTokens(entry.join('\n')) + 1;
     if (used + cost > budget) break;
     body.push(...entry);
@@ -60,8 +73,9 @@ function edgeList(files, entries) {
 export function renderDeps({ files, graph, index }) {
   const uses = [...graph.out[index]].sort((a, b) => b[1].weight - a[1].weight).map(([i, e]) => [i, e.names]);
   const usedBy = [...graph.inc[index]].sort((a, b) => b[1].size - a[1].size);
+  const f = files[index];
   return [
-    files[index].path,
+    `${f.path}${f.partialOf ? ` (partial: only the first ${size(MAX_BYTES)} of ${size(f.partialOf)} read)` : ''}`,
     `uses (${uses.length}):`, ...edgeList(files, uses),
     `used by (${usedBy.length}):`, ...edgeList(files, usedBy),
   ].join('\n');

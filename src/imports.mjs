@@ -28,7 +28,7 @@ export function importSpecs(text, lang) {
   if (JS.has(lang)) {
     each(/(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(['"])([^'"\n]+)\1/g, text, (m) => specs.push({ path: m[2] }));
   } else if (lang === 'python') {
-    each(/^[ \t]*from[ \t]+(\.*)([\w.]*)[ \t]+import[ \t]+([^\n#]+)/gm, text, (m) => {
+    each(/^[ \t]*from[ \t]+(\.*)((?:\w[\w.]*)?)[ \t]+import[ \t]+([^\n#]+)/gm, text, (m) => {
       const names = m[3].replace(/[()]/g, '').split(',').map((n) => n.trim().split(/\s+/)[0]).filter((n) => /^\w+$/.test(n));
       if (m[1]) {
         const base = `./${'../'.repeat(m[1].length - 1)}${m[2].replace(/\./g, '/')}`;
@@ -46,13 +46,13 @@ export function importSpecs(text, lang) {
   } else if (lang === 'go') {
     each(/^[ \t]*(?:import[ \t]+)?(?:[\w.]+[ \t]+)?"([\w.\-/]+)"[ \t]*$/gm, text, (m) => specs.push({ path: m[1], dirs: true, lead: true }));
   } else if (lang === 'rust') {
-    each(/^[ \t]*(?:pub(?:\([^)]*\))?[ \t]+)?use[ \t]+([\w:]+)/gm, text, (m) => {
+    each(/^[ \t]*(?:pub(?:\([^)\n]*\))?[ \t]+)?use[ \t]+([\w:]+)/gm, text, (m) => {
       const parts = m[1].split('::').filter(Boolean);
       const local = ['crate', 'self', 'super'].includes(parts[0]);
       const segs = parts.filter((p) => !['crate', 'self', 'super'].includes(p));
       if (segs.length) specs.push({ segs, trail: 3, single: local });
     });
-    each(/^[ \t]*(?:pub(?:\([^)]*\))?[ \t]+)?mod[ \t]+(\w+)[ \t]*;/gm, text, (m) => specs.push({ mod: m[1] }));
+    each(/^[ \t]*(?:pub(?:\([^)\n]*\))?[ \t]+)?mod[ \t]+(\w+)[ \t]*;/gm, text, (m) => specs.push({ mod: m[1] }));
   } else if (C.has(lang)) {
     each(/^[ \t]*#[ \t]*(?:include|import)[ \t]*"([^"\n]+)"/gm, text, (m) => specs.push({ path: m[1], relative: true, orSuffix: true }));
   } else if (JVM_LIKE.has(lang)) {

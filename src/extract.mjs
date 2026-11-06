@@ -1,7 +1,7 @@
 // Language-agnostic extraction: definitions come from keyword patterns shared by most
 // languages plus a few per-family extras; references are plain identifier occurrences.
 
-const MODIFIERS = 'export|default|declare|pub(?:\\([^)]*\\))?|public|private|protected|internal|static|final|abstract|async|unsafe|override|open|sealed|data|inline|virtual|extern|const|partial';
+const MODIFIERS = 'export|default|declare|pub(?:\\([^)\\n]*\\))?|public|private|protected|internal|static|final|abstract|async|unsafe|override|open|sealed|data|inline|virtual|extern|const|partial';
 const KEYWORDS = 'function\\*?|func|fn|fun|def|defp|defmodule|defmacro|class|struct|interface|trait|enum|module|mod|type|protocol|object|record|namespace|sub|proc|procedure|contract|message|service';
 
 // e.g. `export async function foo(`, `func (s *Server) Start(`, `def self.build`, `function M.run(`
@@ -10,8 +10,9 @@ const GENERIC = new RegExp(
 
 // Top level only: indented bindings are locals, which other files cannot reference.
 const JS_BINDING = /^(?:export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)|(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::[^=\n]+)?=\s*(?:async\s+)?(?:function\b|\([^)\n]*\)\s*(?::[^=\n]+)?=>|[A-Za-z_$][\w$]*\s*=>))/gm;
-// `ReturnType name(args) {` with no trailing semicolon
-const C_FUNCTION = /^[ \t]*(?:[A-Za-z_][\w:<>\[\],*&?.]*[ \t]+)+[*&]*([A-Za-z_]\w*)[ \t]*\([^;{}]*\)[ \t]*(?:const[ \t]*)?(?:throws[ \t][\w., ]+)?\{?[ \t]*$/gm;
+// `ReturnType name(args) {` with no trailing semicolon. The argument list may span lines, but is
+// capped in length: unbounded, a file with no `;{}` made every line scan to the end of the file.
+const C_FUNCTION = /^[ \t]*(?:[A-Za-z_][\w:<>\[\],*&?.]*[ \t]+)+[*&]*([A-Za-z_]\w*)[ \t]*\([^;{}]{0,500}\)[ \t]*(?:const[ \t]*)?(?:throws[ \t][\w., ]+)?\{?[ \t]*$/gm;
 const C_DEFINE = /^#[ \t]*define[ \t]+([A-Za-z_]\w*)/gm;
 const SHELL_FUNCTION = /^[ \t]*([A-Za-z_][\w-]*)[ \t]*\(\)[ \t]*\{?/gm;
 const SQL_OBJECT = /^[ \t]*create\s+(?:or\s+replace\s+)?(?:table|view|function|procedure|type)\s+(?:if\s+not\s+exists\s+)?(?:[\w"`]+\.)?["`]?([A-Za-z_]\w*)/gim;
