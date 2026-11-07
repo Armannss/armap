@@ -75,9 +75,25 @@ A small pilot, not a full benchmark, measured on version 0.1 before import resol
 | How does this subsystem work? | 114,940 | 74,229 | -35% |
 | **total** | 496,044 | 397,157 | **-20%** |
 
-Answers were correct in every run in both conditions. The saving comes from fewer round trips on multi-step questions. On lookups that a single search already answers, the map is a small overhead.
+Answers were correct in every run in both conditions, so these questions did not test whether the map changes task success. The saving comes from fewer round trips on multi-step questions (rename impact, subsystem tracing). On lookups that a single search already answers, the map is a small overhead. The total mixes these two effects and should not be read as one number. With two runs per question, differences of a few percent are within noise.
 
-Run it on your own repository with `node benchmark/run.mjs --repo <dir> --questions <file.json>`. Each run uses your Claude usage.
+### Running the benchmark
+
+```bash
+node benchmark/run.mjs --repo <dir> --questions <file.json>
+```
+
+Each question runs in three conditions at the same time:
+
+- `none`: no plugin.
+- `tree`: a plain, alphabetical tree of the same source files, capped at the same 700-token budget, with no ranking, symbols or query commands ([benchmark/tree-baseline](benchmark/tree-baseline)). This separates what the ranking adds from simply having a file listing.
+- `armap`: this plugin.
+
+Give each question a `type`, such as `topology` for questions that span files and `lookup` for ones a single search answers. The report shows task success first, then median tokens per question with the min to max range, then token totals per type. There is no single overall total. The default is 5 trials per condition; change it with `--trials`, pick conditions with `--conditions none,armap`, and save every run with `--out results.json`. Each run uses your Claude usage.
+
+```json
+[{ "id": "rename-user", "type": "topology", "question": "What breaks if I rename getUser?", "expect": ["lib/auth.ts"] }]
+```
 
 ## License
 
