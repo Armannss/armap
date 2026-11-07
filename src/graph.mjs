@@ -56,7 +56,21 @@ export function buildGraph(files) {
     for (const t of f.imports) if (!out[i].has(t)) link(i, t, 1, null);
   });
 
-  return { out, inc, symbolUsers, definers, rank: pageRank(out) };
+  const rank = pageRank(out);
+  liftEntries(files, rank);
+  return { out, inc, symbolUsers, definers, rank };
+}
+
+// Entry points are imported by nothing, so PageRank ranks them last. Lift the MAX_LIFTED that already
+// rank highest to just above the FLOOR_POSITION-th file (above any files tied with it), keeping
+// their order among themselves.
+const FLOOR_POSITION = 5;
+const MAX_LIFTED = 8;
+
+function liftEntries(files, rank) {
+  const floor = [...rank].sort((a, b) => b - a)[Math.min(FLOOR_POSITION, rank.length) - 1];
+  const entries = files.map((_, i) => i).filter((i) => files[i].entry).sort((a, b) => rank[b] - rank[a]).slice(0, MAX_LIFTED);
+  entries.forEach((i, k) => { if (rank[i] <= floor) rank[i] = floor * (1 + (MAX_LIFTED - k) * 1e-9); });
 }
 
 function pageRank(out, damping = 0.85, iterations = 30) {

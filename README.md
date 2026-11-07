@@ -52,6 +52,7 @@ node bin/armap.mjs map --root /path/to/repo --budget 2000
 2. Extract definitions with keyword patterns shared across languages, and collect the identifiers each file mentions.
 3. Resolve import statements to files in the repository (relative paths, path aliases, packages, includes).
 4. Link each file to the files whose symbols it imports and uses, then rank files with PageRank.
+   Entry points are imported by nothing, so PageRank would rank them last. Up to eight of them are lifted to around fifth place: files named by `bin`, `main` or `exports` in a `package.json` (build output such as `dist/index.js` is traced back to `src/`), scripts in a `pyproject.toml`, binaries in a `Cargo.toml`, Go `package main` files and Python `__main__.py` files. The map labels them `entry`.
 5. Print the highest-ranked files and their most-referenced symbols until the token budget is reached.
 
 ## Limitations

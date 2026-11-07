@@ -9,7 +9,7 @@ A "Repo map" block is added to the context at session start. It lists the files 
 
 Work from the map instead of exploring blind:
 
-1. Pick candidate files from the map before running any broad search or directory listing.
+1. Pick candidate files from the map before running any broad search or directory listing. Files marked `entry` are where a program or package starts, so read them first to follow a flow from the top.
 2. To see how a file connects to the rest of the code, run the query command with `deps <file>`. It lists the files it uses and the files that use it, with the shared symbol names.
 3. To find a symbol, run the query command with `refs <symbol>`. It gives the defining file and line, and every file that references it.
 4. When you open a file, read only the region around the `L<n>` line you need rather than the whole file.

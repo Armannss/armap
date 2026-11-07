@@ -134,3 +134,51 @@ test('the partial-files note names at most three files', () => {
   const map = renderMap({ files, graph, truncated, budget: 300, queryCommand: 'armap' });
   assert.match(map, /^Partial \(over 256 KB, only the first 256 KB read\): a\.js, b\.js, c\.js \(\+2 more\)$/m);
 });
+
+const entries = (root) => analyze(root).files.filter((f) => f.entry).map((f) => f.path).sort();
+
+test('monorepo: package.json bin, main and exports mark entry points, mapped from dist/ to src/', () => {
+  const lib = Object.fromEntries(['a', 'b', 'c', 'd', 'e', 'f'].map((n) => [`packages/core/src/${n}.ts`, `import { helper } from "./util";\nexport function ${n}One() { helper(); }\n`]));
+  const root = repo({
+    'package.json': '{ "private": true, "workspaces": ["packages/*"] }\n',
+    'packages/core/package.json': '{ "main": "dist/index.js", "exports": { ".": "./dist/index.js", "./*": "./dist/*.js" } }\n',
+    'packages/core/src/index.ts': 'export * from "./util";\n',
+    'packages/core/src/util.ts': 'export function helper() {}\n',
+    ...lib,
+    'packages/cli/package.json': '{ "name": "tool", "bin": { "tool": "./bin/tool.js" } }\n',
+    'packages/cli/bin/tool.js': 'import { run } from "../src/run.js";\nrun();\n',
+    'packages/cli/src/run.js': 'export function run() {}\n',
+  });
+  assert.deepEqual(entries(root), ['packages/cli/bin/tool.js', 'packages/core/src/index.ts']);
+
+  const { files, graph, truncated } = analyze(root);
+  const map = renderMap({ files, graph, truncated, budget: 4000, queryCommand: 'armap' });
+  const listed = map.split('\n').filter((l) => /^packages\//.test(l));
+  const at = (path) => listed.findIndex((l) => l.startsWith(`${path} `));
+  assert.match(listed[at('packages/cli/bin/tool.js')], /\(entry\)$/);
+  // Without the lift these two rank last, since nothing imports them.
+  assert.ok(at('packages/cli/bin/tool.js') <= 6, map);
+  assert.ok(at('packages/core/src/index.ts') <= 6, map);
+  assert.equal(listed[0].split(' ')[0], 'packages/core/src/util.ts');
+});
+
+test('cargo, pyproject, go and python __main__ entry points', () => {
+  const root = repo({
+    'rs/Cargo.toml': '[package]\nname = "x"\n\n[[bin]]\nname = "gen"\npath = "tools/gen.rs"\n',
+    'rs/src/main.rs': 'fn main() {}\n',
+    'rs/src/bin/extra.rs': 'fn main() {}\n',
+    'rs/src/util.rs': 'pub fn util() {}\n',
+    'rs/tools/gen.rs': 'fn main() {}\n',
+    'py/pyproject.toml': '[project]\nname = "app"\n\n[project.scripts]\napp = "app.cli:main"\n\n[tool.other]\nx = "app.models:y"\n',
+    'py/src/app/cli.py': 'def main():\n    pass\n',
+    'py/src/app/models.py': 'class Y:\n    pass\n',
+    'py/src/app/__main__.py': 'from app.cli import main\nmain()\n',
+    'go/cmd/server/main.go': 'package main\n\nfunc main() {}\n',
+    'go/cmd/server/main_test.go': 'package main\n\nfunc main() {}\n',
+    'go/internal/store.go': 'package store\n\nfunc Open() {}\n',
+  });
+  assert.deepEqual(entries(root), [
+    'go/cmd/server/main.go', 'py/src/app/__main__.py', 'py/src/app/cli.py',
+    'rs/src/bin/extra.rs', 'rs/src/main.rs', 'rs/tools/gen.rs',
+  ]);
+});
