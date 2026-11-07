@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readdirSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
+import { isManifest } from './entries.mjs';
 
 export const LANGS = {
   '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
@@ -30,10 +31,12 @@ export const MAX_FILES = 5000;
 // Larger files are still mapped, but only their first MAX_BYTES are read.
 export const MAX_BYTES = 256 * 1024;
 
+const inSkippedDir = (rel) => rel.split('/').some((part) => SKIP_DIRS.has(part));
+
 function wanted(rel) {
   if (!(extname(rel) in LANGS)) return false;
   if (/\.(min|bundle)\.[cm]?js$|\.d\.ts$|\.generated\.|_pb2?\.|\.pb\.go$/.test(rel)) return false;
-  return !rel.split('/').some((part) => SKIP_DIRS.has(part));
+  return !inSkippedDir(rel);
 }
 
 function gitFiles(root) {
@@ -43,7 +46,7 @@ function gitFiles(root) {
   return out.split('\0').filter(Boolean);
 }
 
-function walk(root) {
+function walk(root, manifests) {
   const found = [];
   const stack = [''];
   while (stack.length && found.length <= MAX_FILES) {
@@ -55,16 +58,25 @@ function walk(root) {
       const rel = dir ? `${dir}/${e.name}` : e.name;
       if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) stack.push(rel); }
       else if (e.isFile() && wanted(rel)) found.push(rel);
+      else if (e.isFile() && isManifest(rel)) manifests.push(rel);
     }
   }
   return found;
 }
 
 // Source files under root, as posix-style relative paths. Honors .gitignore when root is in a git repo.
-// `large` maps each file over MAX_BYTES to its size in bytes.
+// `large` maps each file over MAX_BYTES to its size in bytes. `manifests` lists package manifests.
 export function listFiles(root) {
   let rels;
-  try { rels = gitFiles(root).filter(wanted); } catch { rels = walk(root); }
+  let manifests = [];
+  try {
+    const all = gitFiles(root);
+    rels = all.filter(wanted);
+    manifests = all.filter((rel) => isManifest(rel) && !inSkippedDir(rel));
+  } catch {
+    manifests = [];
+    rels = walk(root, manifests);
+  }
   const large = new Map();
   rels = rels.filter((rel) => {
     let s;
@@ -74,5 +86,5 @@ export function listFiles(root) {
     return true;
   }).sort();
   const truncated = rels.length > MAX_FILES;
-  return { files: truncated ? rels.slice(0, MAX_FILES) : rels, truncated, large };
+  return { files: truncated ? rels.slice(0, MAX_FILES) : rels, truncated, large, manifests: manifests.sort() };
 }

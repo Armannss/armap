@@ -4,6 +4,7 @@ import { LANGS, MAX_BYTES, listFiles } from './scan.mjs';
 import { extract } from './extract.mjs';
 import { importSpecs, resolveImports } from './imports.mjs';
 import { buildGraph } from './graph.mjs';
+import { isMainFile, markEntries } from './entries.mjs';
 
 // The first MAX_BYTES of a file, cut back to the last full line.
 function readHead(path) {
@@ -19,7 +20,7 @@ function readHead(path) {
 }
 
 export function analyze(root) {
-  const { files: paths, truncated, large } = listFiles(root);
+  const { files: paths, truncated, large, manifests } = listFiles(root);
   const files = [];
   for (const path of paths) {
     const size = large.get(path);
@@ -29,8 +30,10 @@ export function analyze(root) {
     const lang = LANGS[extname(path)];
     const file = { path, lang, ...extract(text, lang), specs: importSpecs(text, lang) };
     if (size) file.partialOf = size;
+    if (isMainFile(path, lang, text)) file.entry = true;
     files.push(file);
   }
   resolveImports(files);
+  markEntries(root, manifests, files);
   return { files, truncated, graph: buildGraph(files) };
 }

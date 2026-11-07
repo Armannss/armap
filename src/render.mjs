@@ -23,7 +23,7 @@ export function renderMap({ files, graph, budget, truncated, queryCommand }) {
   const head = [
     `# Repo map: ${files.length}${truncated ? '+' : ''} source files (${langs})`,
     `Top-level: ${dirs}`,
-    'Files below are ranked by how much other code depends on them. `L<n>` is the line of each definition.',
+    'Files below are ranked by how much other code depends on them, with entry points kept near the top. `L<n>` is the line of each definition.',
   ];
   // Files over the size limit are mapped from their first MAX_BYTES only; say which, so a missing
   // definition in one of them is not mistaken for an absent one.
@@ -52,7 +52,7 @@ export function renderMap({ files, graph, budget, truncated, queryCommand }) {
       .slice(0, SYMBOLS_PER_FILE)
       .sort((a, b) => a.line - b.line);
     const usedBy = graph.inc[i].size;
-    const note = [usedBy && `used by ${usedBy}`, f.partialOf && `partial, ${size(f.partialOf)}`].filter(Boolean).join('; ');
+    const note = [f.entry && 'entry', usedBy && `used by ${usedBy}`, f.partialOf && `partial, ${size(f.partialOf)}`].filter(Boolean).join('; ');
     const entry = [`${f.path}${note ? ` (${note})` : ''}`, ...symbols.map((s) => `  L${s.line} ${s.sig}`)];
     const cost = estimateTokens(entry.join('\n')) + 1;
     if (used + cost > budget) break;
